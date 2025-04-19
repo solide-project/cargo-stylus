@@ -29,7 +29,7 @@ pub fn export_abi(
     if json {
         let solc = Command::new("solc")
             .stdin(Stdio::piped())
-            .stderr(Stdio::inherit())
+            // .stderr(Stdio::inherit())
             .stdout(Stdio::piped())
             .arg("--abi")
             .arg("-")
@@ -41,8 +41,17 @@ pub fn export_abi(
         output = solc.wait_with_output()?.stdout;
     }
 
+    // let mut out = sys::file_or_stdout(file)?;
+    // out.write_all(&output)?;
     let mut out = sys::file_or_stdout(file)?;
-    out.write_all(&output)?;
+    if !output.status.success() {
+        // If stderr has content, suppress and write "[]"
+        out.write_all(b"[]\n")?;
+    } else {
+        // If no error, write the actual output (stdout)
+        out.write_all(&output.stdout)?;
+    }
+    
     Ok(())
 }
 

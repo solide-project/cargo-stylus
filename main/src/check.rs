@@ -6,6 +6,7 @@ use crate::{
     constants::ARB_WASM_ADDRESS,
     macros::*,
     project,
+    export_abi::{self},
     util::color::{Color, GREY, LAVENDER, MINT, PINK, YELLOW},
     CheckConfig, DataFeeOpts,
 };
@@ -50,6 +51,10 @@ pub async fn check(cfg: &CheckConfig) -> Result<ContractCheck> {
         bail!("The old Stylus testnet is no longer supported.\nPlease downgrade to {version}",);
     }
 
+    if let Err(e) = export_abi::export_abi(None, true) {
+        eprintln!("Error: {:?}", e);
+    }
+
     let verbose = cfg.common_cfg.verbose;
     let (wasm, project_hash) = cfg.build_wasm().wrap_err("failed to build wasm")?;
 
@@ -60,13 +65,15 @@ pub async fn check(cfg: &CheckConfig) -> Result<ContractCheck> {
     let (wasm_file_bytes, code) =
         project::compress_wasm(&wasm, project_hash).wrap_err("failed to compress WASM")?;
 
-    greyln!("contract size: {}", format_file_size(code.len(), 16, 24));
+    let init_code = contract_deployment_calldata(&code);
+    let deploy_code: String = init_code
+        .iter()
+        .map(|byte| format!("{:02x}", byte))
+        .collect();
+
+    println!("DEPLOYMENT_CODE: {}", deploy_code);
 
     if verbose {
-        greyln!(
-            "wasm size: {}",
-            format_file_size(wasm_file_bytes.len(), 96, 128)
-        );
         greyln!("connecting to RPC: {}", &cfg.common_cfg.endpoint.lavender());
     }
 
