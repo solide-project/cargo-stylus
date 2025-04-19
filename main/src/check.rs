@@ -9,6 +9,7 @@ use crate::{
     export_abi::{self},
     util::color::{Color, GREY, LAVENDER, MINT, PINK, YELLOW},
     CheckConfig, DataFeeOpts,
+    deploy::contract_deployment_calldata,
 };
 use alloy::{
     contract::Error,
@@ -51,7 +52,7 @@ pub async fn check(cfg: &CheckConfig) -> Result<ContractCheck> {
         bail!("The old Stylus testnet is no longer supported.\nPlease downgrade to {version}",);
     }
 
-    if let Err(e) = export_abi::export_abi(None, true) {
+    if let Err(e) = export_abi::export_abi(None, true, None) {
         eprintln!("Error: {:?}", e);
     }
 
@@ -62,7 +63,7 @@ pub async fn check(cfg: &CheckConfig) -> Result<ContractCheck> {
         greyln!("reading wasm file at {}", wasm.to_string_lossy().lavender());
     }
 
-    let (wasm_file_bytes, code) =
+    let (_wasm_file_bytes, code) =
         project::compress_wasm(&wasm, project_hash).wrap_err("failed to compress WASM")?;
 
     let init_code = contract_deployment_calldata(&code);
